@@ -5,10 +5,24 @@ import app from './app';
 import logger from './utils/logger';
 import connectDB from './db';
 import redisClient from './services/cache';
-import { testTOTPImplementation } from './services/crypto.service';
+
+import AWS from 'aws-sdk';
+import { initWebSocketRoutes } from './routes/websocket.route';
 
 
-testTOTPImplementation();
+
+AWS.config.getCredentials((err) => {
+  if (err) {
+      logger.error("❌ AWS Credentials Error:", err);
+      process.exit(1);
+  } else {
+      logger.info("✅ AWS Credentials Loaded", {
+          region: AWS.config,
+          accessKeyId: AWS.config.credentials?.accessKeyId?.substring(0, 4) + '...'
+      });
+  }
+});
+
 
 (async () => {
   logger.info('Connecting to Database...');
@@ -74,7 +88,9 @@ testTOTPImplementation();
       logger.info('Connected!');
     };
 
-    app.listen(port, onListening);
+    const server = app.listen(port, onListening);
+    initWebSocketRoutes(server);
     logger.info(`Worker ${process.pid} started`);
   }
+
 })();

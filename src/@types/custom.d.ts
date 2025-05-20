@@ -1,13 +1,11 @@
 declare namespace Express {
   export interface Request {
-    user: {
+    driver: {
       _id: string;
-      email: string;
-      twoFactorEnabled?: boolean;
+      tokenType?: 'access' | 'refresh';
     };
-    tempTokenPayload: {
-      _id: string;
-      requires2FA: boolean;
-    };
+    tempAuth?: {
+      phoneNumber: string;
+    }
   }
 }

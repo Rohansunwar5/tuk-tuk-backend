@@ -1,63 +1,42 @@
 import { NextFunction, Request, Response } from 'express';
 import authService from '../services/auth.service';
-import { UnauthorizedError } from '../errors/unauthorized.error';
-import twoFactorAuthService from '../services/2fa.service';
 
-export const genericLogin = async (req: Request, res: Response, next: NextFunction) => {
-  const { email, password } = req.body;
-  const response = await authService.login({ email, password });
+export const sendOTP = async (req: Request, res: Response, next: NextFunction) => {
+  const { phoneNumber } = req.body;
+  const result = await authService.initiateOTP(phoneNumber);
 
-  next(response);
-};
+  next(result); 
+}
 
-export const signup = async (req: Request, res: Response, next: NextFunction) => {
-  const { firstName, lastName, email, password } = req.body;
-  const response = await authService.signup({ firstName, lastName, email, password });
+export const verifyOTP = async (req: Request, res: Response, next: NextFunction) => {
+  const { phoneNumber, otp } = req.body;
+  const tempToken  = await authService.verifyOTP(phoneNumber, otp);
+  
+  next(tempToken ); 
+}
 
-  next(response);
-};
+export const completeProfile = async (req: Request, res: Response, next: NextFunction) => {
+  const { firstName, lastName, vehicleNumber } = req.body;
+  if (!req.tempAuth) {
+    return next(new Error('Authentication information missing'));
+  }
+  const { phoneNumber } = req.tempAuth;
+  const tokens = await authService.completeRegistration( phoneNumber, firstName, lastName, vehicleNumber);
+  
+  next(tokens);
+}
 
 export const profile = async (req: Request, res: Response, next: NextFunction) => {
-  const { _id } = req.user;
-  const response = await authService.profile(_id);
+  const { _id }  = req.driver;
+  const response = await authService.getProfile(_id);
 
   next(response);
-};
+}
 
-
-// 2FA 
-export const setup2FA = async (req: Request, res: Response, next: NextFunction) => {
-  const { _id, email } = req.user;
-  console.log("email", email);
-  
-  const response = await authService.setup2FA(_id, email);
-  next(response);
-};
-
-export const confirm2FA = async (req: Request, res: Response, next: NextFunction) => {
-  const { _id } = req.user;
-  const { code, secret } = req.body;
-  const response = await authService.confirm2FA(_id, code, secret);
+export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+  const { _id }  = req.driver;
+  const { firstName, lastName, vehicleNumber, location } = req.body;
+  const response = await authService.updateProfile({ _id ,firstName, lastName, vehicleNumber, location });
 
   next(response);
-};
-
-export const verify2FA = async (req: Request, res: Response, next: NextFunction) => {
-  const { code } = req.body;
-  const userId = req.tempTokenPayload?._id; // From middleware
-  const response = await authService.verify2FA(userId, code);
-  next(response);
-};
-
-export const disable2FA = async (req: Request, res: Response, next: NextFunction) => {
-  const { _id } = req.user;
-  const response = await authService.disable2FA(_id);
-
-  next(response);
-};
-
-export const getCurrentCode = async (req: Request, res: Response, next: NextFunction) => {
-  const { secret } = req.body;
-  const code = await twoFactorAuthService.getCurrentCode(secret);
-  next({ code });
-};
+}

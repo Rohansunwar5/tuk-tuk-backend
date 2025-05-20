@@ -1,74 +1,55 @@
 import JWT from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { BadRequestError } from '../../errors/bad-request.error';
-import { encodedJWTCacheManager } from '../../services/cache/entities';
+// import { encodedJWTCacheManager } from '../../services/cache/entities';
 import { UnauthorizedError } from '../../errors/unauthorized.error';
-import { decode, encode, encryptionKey } from '../../services/crypto.service';
-import config from '../../config';
-import { UserRepository } from '../../repository/user.repository';
+// import { decode, encode, encryptionKey } from '../../services/crypto.service';
+import { DriverRepository } from '../../repository/driver.repository';
 
-const userRepository = new UserRepository();
 
-interface IJWTVerifyPayload {
+interface IDriverJWTPayload {
   _id: string;
-  email: string;
-  twoFactorVerified?: boolean;
+  type: 'access' | 'refresh';
 }
 
-const getAuthMiddlewareByJWTSecret = (jwtSecret: string) => async (
-  req: Request,
-  _res: Response,
-  next: NextFunction
-) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      throw new BadRequestError('Authorization header is missing');
-    }
+const getAuthMiddlewareByJWTSecret = (jwtSecret: string) => {
+  const driverRepo = new DriverRepository();
 
-    // 2. Extract and verify token
-    const token = authHeader.split(' ')[1];
-    if (!token) throw new BadRequestError('Token is missing or invalid');
-    
-    const decoded = JWT.verify(token, jwtSecret) as IJWTVerifyPayload;
-    if (!decoded._id || !decoded.email) {
-      throw new UnauthorizedError('Invalid token payload');
-    }
-
-    const { _id, email } = decoded;
-
-    const user = await userRepository.getUserById(_id);
-    if (!user) throw new UnauthorizedError('User not found');
-
-    const key = await encryptionKey(config.JWT_CACHE_ENCRYPTION_KEY);
-    const cachedJWT = await encodedJWTCacheManager.get({ userId: _id });
-
-    if (!cachedJWT) {
-      const encryptedData = await encode(token, key);
-      await encodedJWTCacheManager.set({ userId: _id }, encryptedData);
-    } else if (cachedJWT) {
-      const decodedJWT = await decode(cachedJWT, key);
-      if (decodedJWT !== token) {
-        throw new UnauthorizedError('Session Expired!');
+  return async (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        throw new BadRequestError('Authorization header is missing');
       }
-    }
 
-    req.user = {
-      _id: decoded._id,
-      email: decoded.email,
-      twoFactorEnabled: user.twoFactorEnabled
-    };
-    
-    next();
-  } catch (error) {
-    if (error instanceof JWT.TokenExpiredError) {
-      next(new UnauthorizedError('Token expired'));
-    } else if (error instanceof JWT.JsonWebTokenError) {
-      next(new UnauthorizedError('Invalid token'));
-    } else {
+      const token = authHeader.split(' ')[1];
+      if (!token) throw new BadRequestError('Token is missing or invalid');
+      
+      const { _id, type } = JWT.verify(token, jwtSecret) as IDriverJWTPayload;
+
+      // Mobile-specific verification
+      const driver = await driverRepo.findById(_id);
+      if (!driver) {
+        throw new UnauthorizedError('Driver not found');
+      }
+
+      // For refresh tokens, verify against stored refresh token
+      if (type === 'refresh' && driver.refreshToken !== token) {
+        throw new UnauthorizedError('Invalid refresh token');
+      }
+
+      req.driver = {
+        _id,
+        tokenType: type
+      };
+
+      next();
+    } catch (error) {
+      if (error instanceof JWT.TokenExpiredError) {
+        throw new UnauthorizedError('Token expired. Please refresh');
+      }
       next(error);
     }
-  }
+  };
 };
-
 export default getAuthMiddlewareByJWTSecret;

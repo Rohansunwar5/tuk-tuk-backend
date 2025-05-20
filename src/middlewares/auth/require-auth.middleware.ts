@@ -6,7 +6,7 @@ const requireAuth = (
   _res: Response,
   next: NextFunction,
 ) => {
-  if (!req.user) {
+  if (!req.driver) {
     throw new UnauthorizedError();
   }
   next();

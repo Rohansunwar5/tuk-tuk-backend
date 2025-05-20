@@ -1,195 +1,97 @@
 import config from '../config';
-import { BadRequestError } from '../errors/bad-request.error';
 import { InternalServerError } from '../errors/internal-server.error';
-import { NotFoundError } from '../errors/not-found.error';
-import { UnauthorizedError } from '../errors/unauthorized.error';
-import { UserRepository } from '../repository/user.repository';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { encode, encryptionKey, generateTOTPSecret, generateTOTPURI } from './crypto.service';
-import { encodedJWTCacheManager, profileCacheManager } from './cache/entities';
-import twoFactorAuthService from './2fa.service';
-import { generateQRCodeSVG } from '../utils/qrUtils';
+// import { encode, encryptionKey, generateTOTPSecret, generateTOTPURI } from './crypto.service';
+// import { encodedJWTCacheManager, profileCacheManager } from './cache/entities';
+import { DriverRepository } from '../repository/driver.repository';
+import otpService from './otp.service';
+import { BadRequestError } from '../errors/bad-request.error';
+import { NotFoundError } from '../errors/not-found.error';
 
 class AuthService {
-  constructor(private readonly _userRepository: UserRepository) {
+  constructor(private readonly _driverRepository: DriverRepository) {}
+
+  async initiateOTP(phoneNumber: string) {
+    return otpService.sendOTP(phoneNumber);
   }
+
+  async verifyOTP(phoneNumber: string, otp: string) {
+    await otpService.verifyOTP(phoneNumber, otp);
+    const existingDriver = await this._driverRepository.findByPhone(phoneNumber);
+    
+    if (existingDriver?.profileCompleted) {
+      return await this.generateTokens(existingDriver._id);
+    }
+
+    const tempToken = jwt.sign(
+      { phoneNumber, temp: true },
+      config.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    return { tempToken };
+  }
+
+  async completeRegistration(phoneNumber: string, firstName: string, lastName: string, vehicleNumber: string) {
+    const driver = await this._driverRepository.createOrUpdate({ phoneNumber, firstName,lastName, vehicleNumber, profileCompleted: true });
+
+    if (!driver) throw new InternalServerError('Failed to create driver profile')
+
+    return await this.generateTokens(driver._id);
+}
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async login(params: { email: string, password: string }) {
-    const { email, password } = params;
-    const user = await this._userRepository.getUserByEmailId(email);
-    if (!user) throw new NotFoundError('User not found');
-    if (!user.password) throw new BadRequestError('Reset password');
-
-    // password validation;
-    const success = await this.verifyHashPassword(password, user.password);
-    if (!success) throw new UnauthorizedError('Invalid Email or Password');
-
-    if(user.twoFactorEnabled) {
-      if(!user.twoFactorSecret) throw new InternalServerError('2FA is enabled but no secret found');
-      
-      // short-lived token for 2FA verification
-      const tempToken = jwt.sign(
-        { 
-          _id: user._id.toString(), 
-          email: user.email, 
-          requires2FA: true 
-        },
-        config.JWT_SECRET,
-        { expiresIn: '5m' }
-      );
-
-      return { requires2FA: true, tempToken }
-    }
-
-    // regular login without 2FA ;
-    const accessToken = await this.generateJWTToken(user._id);
-    if (!accessToken) throw new InternalServerError('Failed to generate accessToken');
-
-    return { accessToken };
-  }
-
-
-  async verify2FA(userId: string, code: string) {
-    const user = await this._userRepository.getUserById(userId);
-    if(!user) throw new NotFoundError('User not found');
-    if(!user.twoFactorEnabled || !user.twoFactorSecret) throw new BadRequestError('2FA not enabled for this user');
-
-    const isValid = await twoFactorAuthService.verifyLoginCode( user.twoFactorSecret, code);
-
-    if (!isValid) throw new UnauthorizedError('Invalid 2FA code');
-
-    // Generate final access token
-    const accessToken = await this.generateJWTToken(user._id);
-    if (!accessToken) throw new InternalServerError('Failed to generate accessToken');
-
-    return { accessToken };
-  }
-
-  async setup2FA(userId: string, email: string) {
-    const user = await this._userRepository.getUserById(userId);
-    if (!user) throw new NotFoundError('User not found');
-    if (user.twoFactorEnabled) throw new BadRequestError('2FA already enabled');
-
-    // const setupData = await twoFactorAuthService.setup2FA(email);
-
-    const secret = generateTOTPSecret();
-    if (!/^[A-Z2-7]{16,32}$/.test(secret)) throw new Error('Invalid secret generated');
-
-    const uri = generateTOTPURI(secret, email, 'rohan');
-    // console.log('Generated TOTP URI:', uri); 
-
-    const qrCode = generateQRCodeSVG(uri);
-    
-    // Store the unverified secret temporarily
-    await this._userRepository.updateUser({
-      _id: userId,
-      twoFactorSecret: secret,
-      twoFactorEnabled: false
-    });
-
-    return {
-      qrCode,
-      secret // For manual entry fallback
-    };
-  }
-
-  async confirm2FA(userId: string, code: string, secret: string) {
-    const user = await this._userRepository.getUserById(userId);
-    if (!user) throw new NotFoundError('User not found');
-
-    if (user.twoFactorEnabled) throw new BadRequestError('2FA already enabled');
-    if (user.twoFactorSecret.trim() !== secret.trim()) {
-      throw new BadRequestError(`Invalid 2FA setup state`);
-    }
-
-    // console.log('Verifying code:', code, 'against secret:', user.twoFactorSecret);
-    const isValid = await twoFactorAuthService.verifySetupCode(user.twoFactorSecret, code);
-    if (!isValid) {
-      console.log('Failed verification. Current server time:', new Date());
-      throw new UnauthorizedError('Invalid verification code');
-    }
-
-    await this._userRepository.updateUser({
-      _id: userId,
-      twoFactorEnabled: true
-    });
-  
-    return { success: true };
-  }
-
-  async disable2FA(userId: string) {
-    await this._userRepository.updateUser({
-      _id: userId,
-      twoFactorEnabled: false,
-      twoFactorSecret: '',
-    });
-    
-    return { success: true };
-  }
-
-  async verifyHashPassword(plainTextPassword: string, hashedPassword: string) {
-    return await bcrypt.compare(plainTextPassword, hashedPassword);
-  }
-
   async hashPassword(plainTextPassword: string) {
     return await bcrypt.hash(plainTextPassword, 10);
   }
 
-  async generateJWTToken(userId: string) {
-    const user = await this._userRepository.getUserById(userId);
-    if (!user) throw new NotFoundError('User not found');
+  private async generateTokens(driverId: string) {
+    const accessToken = jwt.sign(
+      { _id: driverId, type: 'access'},
+      config.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
 
-    const token = jwt.sign({
-      _id: userId.toString(),
-      email: user.email,
-      twoFactorVerified: false
-    }, config.JWT_SECRET, { expiresIn: '24h' });
+    const refreshToken = jwt.sign(
+      { _id: driverId, type: 'refresh' },
+      config.JWT_SECRET,
+      { expiresIn:'180d' }
+    )
 
-    const key = await encryptionKey(config.JWT_CACHE_ENCRYPTION_KEY);
-    const encryptedData = await encode(token, key);
-    await encodedJWTCacheManager.set({ userId }, encryptedData);
+    await this._driverRepository.saveRefreshToken(driverId, refreshToken);
 
-    return token;
+    return { accessToken, refreshToken };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-  async signup(params: any) {
-    const { firstName, lastName, email, password } = params;
-    const existingUser = await this._userRepository.getUserByEmailId(email);
+  async getProfile(driverId: string) {
+    const driver = await this._driverRepository.findById(driverId);
 
-    if (existingUser) throw new BadRequestError('Email address already exists');
-
-    // get hashedPassword
-    const hashedPassword = await this.hashPassword(password);
-
-    const user = await this._userRepository.onBoardUser({
-      firstName, lastName, email, password: hashedPassword
-    });
-    
-    if (!user) throw new InternalServerError('Failed to Onboard user');
-
-    // generate JWT Token
-    const accessToken = await this.generateJWTToken(user._id);
-    if (!accessToken) throw new InternalServerError('Failed to generate accessToken');
-
-    return { accessToken };
-  }
-
-  async profile(userId: string) {
-    const cached = await profileCacheManager.get({ userId });
-    if (!cached) {
-      const user = await this._userRepository.getUserById(userId);
-      if (!user) throw new NotFoundError('User not found');
-
-      // set cache;
-      await profileCacheManager.set({ userId }, user);
-      return user;
+    if(!driver) {
+      throw new BadRequestError('driver not found');
     }
-    return cached;
+
+    return driver;
   }
+
+  async updateProfile(params: { firstName?: string, lastName?: string ,_id: string, location?: string, vehicleNumber?: string}) {
+    const { firstName, lastName, _id, location, vehicleNumber } = params;
+    const driver = await this._driverRepository.updateDriver({ firstName, lastName, _id, location, vehicleNumber });
+
+    if(!driver) throw new NotFoundError('Driver not found');
+
+    return driver;
+  }
+
+  async findDriverById(driverId: string) {
+      const driver = await this._driverRepository.findById(driverId);
+      if (!driver) {
+          throw new NotFoundError('Driver not found');
+      }
+      return driver;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 
 }
 
-export default new AuthService(new UserRepository());
+export default new AuthService(new DriverRepository());
