@@ -1,7 +1,7 @@
-import { Router } from "express";
-import { uploadAnyFile } from "../utils/multer.util";
-import { asyncHandler } from "../utils/asynchandler";
-import { createAd, getActiveAds } from "../controllers/ad.controller";
+import { Router } from 'express';
+import { uploadAnyFile } from '../utils/multer.util';
+import { asyncHandler } from '../utils/asynchandler';
+import { createAd, getActiveAds } from '../controllers/ad.controller';
 
 const adRouter = Router();
 

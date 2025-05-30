@@ -1,4 +1,4 @@
-import pairingAttemptsModel, { ISessionStatus } from "../models/pairing-attempts.model";
+import pairingAttemptsModel, { ISessionStatus } from '../models/pairing-attempts.model';
 
 
 export class PairingAttemptRepository {

@@ -1,4 +1,4 @@
-import driverModel from "../models/driver.model"
+import driverModel from '../models/driver.model'
 
 export class DriverRepository {
     private _model = driverModel;

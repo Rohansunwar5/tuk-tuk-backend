@@ -1,8 +1,8 @@
-import { Router } from "express";
-import { asyncHandler } from "../utils/asynchandler";
-import isLoggedIn from "../middlewares/isLoggedIn.middleware";
-import { getDeviceStatus, refreshWsToken, regsiterDevice } from "../controllers/device.controllers";
-import { isDeviceAuthenticated } from "../middlewares/isDeviceAuthenticated.middleware";
+import { Router } from 'express';
+import { asyncHandler } from '../utils/asynchandler';
+import isLoggedIn from '../middlewares/isLoggedIn.middleware';
+import { getDeviceStatus, refreshWsToken, regsiterDevice } from '../controllers/device.controllers';
+import { isDeviceAuthenticated } from '../middlewares/isDeviceAuthenticated.middleware';
 
 const deviceRouter = Router();
 

@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-import playlogModel, { IPlayLog } from "../models/playlog.model";
+import mongoose from 'mongoose';
+import playlogModel, { IPlayLog } from '../models/playlog.model';
 
 export class PlayLogRepository {
     private _model = playlogModel;

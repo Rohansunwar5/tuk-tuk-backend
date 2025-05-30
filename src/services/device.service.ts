@@ -57,7 +57,7 @@ class DeviceService {
     }
 
     async getDeviceForRefresh(deviceId: string) {
-        console.log("inside getDeviceforRefresh");
+        console.log('inside getDeviceforRefresh');
         
         return this._deviceRepository.getDeviceForRefresh(deviceId);
     } 

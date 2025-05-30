@@ -17,14 +17,14 @@ export const initWebSocketRoutes = (server: any) => {
       console.log(urlParts);
       
       const queryString = urlParts.length > 1 ? `?${urlParts[1]}` : '';
-      console.log("queryString: ",queryString );
+      console.log('queryString: ',queryString );
       
       const wsStyleUrl = `ws://dummyhost${queryString}`;
-      console.log("wsStyleUrl: ",wsStyleUrl);
+      console.log('wsStyleUrl: ',wsStyleUrl);
       
       
       const deviceId = verifyDeviceToken(wsStyleUrl); 
-      console.log("deviceId: ", deviceId);
+      console.log('deviceId: ', deviceId);
       
       handleDeviceConnection(ws, req.url); 
     } catch (err) {

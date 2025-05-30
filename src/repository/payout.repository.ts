@@ -1,4 +1,4 @@
-import payoutModel from "../models/payout.model";
+import payoutModel from '../models/payout.model';
 
 export class PayoutRepository {
     private _model = payoutModel;

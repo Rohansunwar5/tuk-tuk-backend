@@ -1,5 +1,5 @@
-import { InternalServerError } from "../errors/internal-server.error";
-import { AdRepository } from "../repository/ad.repository";
+import { InternalServerError } from '../errors/internal-server.error';
+import { AdRepository } from '../repository/ad.repository';
 
 class AdService {
     constructor(private readonly _adRepository: AdRepository) {}

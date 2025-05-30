@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from "express";
-import playlogService from "../services/playlog.service";
+import { Request, Response, NextFunction } from 'express';
+import playlogService from '../services/playlog.service';
 
 
 export const startPlaySession = async (req: Request, res: Response, next: NextFunction) => {

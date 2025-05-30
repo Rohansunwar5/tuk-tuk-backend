@@ -1,5 +1,4 @@
 import userModel, { IUser } from '../models/user.model';
-import { sha1 } from '../utils/hash.util';
 
 export interface IOnBoardUserParams {
   firstName: string;

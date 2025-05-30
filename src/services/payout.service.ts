@@ -1,10 +1,9 @@
-import config from "../config";
-import { BadRequestError } from "../errors/bad-request.error";
-import { InternalServerError } from "../errors/internal-server.error";
-import { IPayoutStatus } from "../models/payout.model";
-import { DriverRepository } from "../repository/driver.repository";
-import { PayoutRepository } from "../repository/payout.repository";
-import razorpayService from "./razorpay.service";
+import { BadRequestError } from '../errors/bad-request.error';
+import { InternalServerError } from '../errors/internal-server.error';
+import { IPayoutStatus } from '../models/payout.model';
+import { DriverRepository } from '../repository/driver.repository';
+import { PayoutRepository } from '../repository/payout.repository';
+import razorpayService from './razorpay.service';
 
 
 interface ICreatePayoutParams {

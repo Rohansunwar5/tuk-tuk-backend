@@ -1,20 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import payoutService from '../services/payout.service';
-import { IPayoutStatus } from '../models/payout.model';
 import config from '../config';
-import razorpayService from '../services/razorpay.service';
 
 export const requestPayout = async (req: Request, res: Response, next: NextFunction) => {
     const { amount, method, accountDetails } = req.body;
-    // const driverId = req.driver._id;
     const { _id } = req.driver; 
-
-    const response = await payoutService.initPayout({
-        driverId: _id,
-        amount, 
-        method,
-        accountDetails,
-    });
+    const response = await payoutService.initPayout({ driverId: _id, amount, method, accountDetails });
 
     next(response);
 }

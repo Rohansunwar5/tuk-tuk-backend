@@ -1,6 +1,6 @@
-import { Router } from "express";
-import { asyncHandler } from "../utils/asynchandler";
-import { endPlaySession, startPlaySession, verifyCompletedSession, verifyPlaySession } from "../controllers/playlog.controller";
+import { Router } from 'express';
+import { asyncHandler } from '../utils/asynchandler';
+import { endPlaySession, startPlaySession, verifyCompletedSession, verifyPlaySession } from '../controllers/playlog.controller';
 
 
 const playLogRouter = Router();

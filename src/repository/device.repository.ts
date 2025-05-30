@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
-import deviceModel ,{ IDevice, IStatus } from "../models/device.model";
-import { NotFoundError } from "../errors/not-found.error";
+import mongoose from 'mongoose';
+import deviceModel ,{ IDevice, IStatus } from '../models/device.model';
+import { NotFoundError } from '../errors/not-found.error';
 
 
 export class DeviceRepository {
@@ -87,7 +87,7 @@ export class DeviceRepository {
     async getDeviceForRefresh(deviceId: string) {
         const device = await this._model.findById(deviceId);
 
-        console.log("device: ", device);
+        console.log('device: ', device);
         
 
         if(!device) throw new NotFoundError('Device not found or not paired');

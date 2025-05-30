@@ -1,7 +1,7 @@
-import { Router } from "express";
-import isLoggedIn from "../middlewares/isLoggedIn.middleware";
-import { asyncHandler } from "../utils/asynchandler";
-import { calculateDailyEarnings, getDriverEarnings } from "../controllers/earnings.controller";
+import { Router } from 'express';
+import isLoggedIn from '../middlewares/isLoggedIn.middleware';
+import { asyncHandler } from '../utils/asynchandler';
+import { calculateDailyEarnings, getDriverEarnings } from '../controllers/earnings.controller';
 
 const earningsRoute = Router();
 

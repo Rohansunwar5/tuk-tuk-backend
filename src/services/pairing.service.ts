@@ -1,9 +1,9 @@
-import { BadRequestError } from "../errors/bad-request.error";
-import { NotFoundError } from "../errors/not-found.error";
-import { UnauthorizedError } from "../errors/unauthorized.error";
-import { ISessionStatus } from "../models/pairing-attempts.model";
-import { PairingAttemptRepository } from "../repository/pairing-attempt.repository";
-import deviceSerive from "./device.service";
+import { BadRequestError } from '../errors/bad-request.error';
+import { NotFoundError } from '../errors/not-found.error';
+import { UnauthorizedError } from '../errors/unauthorized.error';
+import { ISessionStatus } from '../models/pairing-attempts.model';
+import { PairingAttemptRepository } from '../repository/pairing-attempt.repository';
+import deviceSerive from './device.service';
 import crypto from 'crypto';
 
 class PairingService {

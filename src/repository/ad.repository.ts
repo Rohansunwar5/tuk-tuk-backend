@@ -1,5 +1,5 @@
-import { IAd } from "../models/ad.model";
-import adModel from "../models/ad.model";
+import { IAd } from '../models/ad.model';
+import adModel from '../models/ad.model';
 
 export class AdRepository {
      private _model = adModel;
