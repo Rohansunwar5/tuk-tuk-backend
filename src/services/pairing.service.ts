@@ -34,21 +34,13 @@ class PairingService {
         );
         
         if (!session) throw new BadRequestError('Invalid or expired pairing session');
-        if (session.driverId.toString() !== driverId) {
-            throw new BadRequestError('Session does not belong to this driver');
-        }
+        if (session.driverId.toString() !== driverId) throw new BadRequestError('Session does not belong to this driver')
 
-        const device = await deviceSerive.completePairing(
-            deviceId, 
-            driverId
-        );
+        const device = await deviceSerive.completePairing( deviceId, driverId );
 
-        await this._pairingAttemptsRepository.markSessionAs(
-            session._id.toString(), // Convert to string
-            ISessionStatus.COMPLETED
-        );
+        await this._pairingAttemptsRepository.markSessionAs( session._id.toString(),  ISessionStatus.COMPLETED );
 
-        return { deviceId: device?._id.toString() }; // Return consistent string IDs
+        return { deviceId: device?._id.toString() };
     }
 
 }

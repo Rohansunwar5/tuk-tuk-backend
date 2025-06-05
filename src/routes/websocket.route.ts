@@ -12,7 +12,6 @@ export const initWebSocketRoutes = (server: any) => {
         throw new BadRequestError('URL not available');
       }
       
-      // Extract just the path and query from the URL
       const urlParts = req.url.split('?');
       console.log(urlParts);
       

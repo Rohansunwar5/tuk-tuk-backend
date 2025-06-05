@@ -83,6 +83,7 @@ class AuthService {
     return driver;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   async findDriverById(driverId: string) {
       const driver = await this._driverRepository.findById(driverId);
       if (!driver) {
@@ -90,8 +91,6 @@ class AuthService {
       }
       return driver;
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-
 }
 
 export default new AuthService(new DriverRepository());

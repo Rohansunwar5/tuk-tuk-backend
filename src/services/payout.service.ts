@@ -5,7 +5,6 @@ import { DriverRepository } from '../repository/driver.repository';
 import { PayoutRepository } from '../repository/payout.repository';
 import razorpayService from './razorpay.service';
 
-
 interface ICreatePayoutParams {
     driverId: string;
     amount: number;
@@ -53,21 +52,43 @@ class PayoutService {
 
         const driver = await this._driverRepository.findById(driverId);
         if(!driver) throw new BadRequestError('Inavlid driver');
+        if(driver.balance < amount) throw new BadRequestError('Insufficient balance');
 
-        if(driver.balance < amount) {
-            throw new BadRequestError('Insufficient balance');
+        // Step 1: Create or get Razorpay contact ID
+        let contactId = driver.razorpayContactId;
+        if(!contactId) {
+            contactId = await razorpayService.createContact({
+                name: `${driver.firstName} ${driver.lastName}`,
+                email: driver.email || 'driver@example.com',
+                phone: driver.phoneNumber,
+                type: 'customer',
+                reference_id: driverId
+            });
+
+            await this._driverRepository.updateRazorpayAccount(driverId, {
+                razorpayContactId: contactId
+            });
         }
 
+        if (!contactId) {
+            throw new InternalServerError('Failed to create or retrieve contact ID');
+        }
+
+
+        //step 2: Create or get fund account Id 
         let fundAccountId = driver.razorpayFundAccountId;
         if(!fundAccountId) {
             fundAccountId = await razorpayService.createFundAccount({ 
                 method,
                 ...accountDetails,
-                contactId: driverId,
-                email: driver.email || undefined,
+                contactId: contactId,
+                email: driver.email || 'test@example.com',  // Fallback email
                 name: `${driver.firstName} ${driver.lastName}`
-            });
-        }
+                });
+
+                console.log('Fund Account ID:', fundAccountId);  // Log the response
+                if (!fundAccountId) throw new Error('Fund account creation failed');
+            }
 
         await this._driverRepository.updateRazorpayAccount(driverId, { 
             razorpayFundAccountId: fundAccountId
@@ -77,6 +98,7 @@ class PayoutService {
             throw new BadRequestError('Failed to create or retrieve fund account');
         }
 
+        //Step 3: create payout
         const payout = await razorpayService.createPayout({
             amount, 
             currency: 'INR',
@@ -84,6 +106,14 @@ class PayoutService {
             mode: method === 'upi' ? 'UPI' : 'IMPS',
             purpose: 'payout',
             referenceId: `payout_${driverId}_${Date.now()}`
+        });
+
+        console.log('Payout Request:', {
+            driverId,
+            amount,
+            method,
+            contactId,
+            fundAccountId
         });
 
         if(!payout) throw new InternalServerError('Failed to create payout');
@@ -99,9 +129,6 @@ class PayoutService {
         })
         
         console.log(`Initiated payout of ${amount} for driver ${driverId}`);
-        
-
-        //deductiong from driver balance
         await this._driverRepository.updateBalance(driverId, -amount);
 
         return payoutRecord;
@@ -162,11 +189,8 @@ class PayoutService {
             updateData
         );
 
-        if(!updatePayout) {
-            throw new InternalServerError('Failed to update payout record');
-        }
+        if(!updatePayout) throw new InternalServerError('Failed to update payout record');
 
-        // handling failed payouts - refund balance 
         if(status === IPayoutStatus.FAILED || status === IPayoutStatus.REVERSED) {
             await this._driverRepository.updateBalance(
                 payout.driverId,

@@ -5,14 +5,7 @@ class AdService {
     constructor(private readonly _adRepository: AdRepository) {}
 
     async createAd(title: string, duration: number, videoUrl: string, rpm: number = 100) {
-        const ad = await this._adRepository.create({
-            title,
-            duration,
-            videoUrl,
-            rpm,
-            isActive: true,
-        });
-
+        const ad = await this._adRepository.create({ title, duration, videoUrl, rpm, isActive: true });
         if(!ad) throw new InternalServerError('Failed to create ad');
 
         return ad;  

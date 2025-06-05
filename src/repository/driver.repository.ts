@@ -4,7 +4,7 @@ export class DriverRepository {
     private _model = driverModel;
 
     async findById(id: string) {
-        return this._model.findById(id).select('phoneNumber firstName lastName vehicleNumber balance refreshToken createdAt')
+        return this._model.findById(id).select('phoneNumber firstName lastName vehicleNumber balance refreshToken createdAt razorpayContactId razorpayFundAccountId email')
     }
 
     async createOrUpdate(params: { phoneNumber: string, firstName: string, lastName: string, vehicleNumber: string, profileCompleted: boolean }) {
@@ -81,15 +81,13 @@ export class DriverRepository {
         )
     }
 
-    
-    async updateRazorpayAccount(driverId: string, updateData: { razorpayFundAccountId?: string}) {
+    async updateRazorpayAccount(driverId: string, data: { razorpayContactId?: string; razorpayFundAccountId?: string }) {
         return this._model.findByIdAndUpdate(
             driverId,
-            { $set: updateData },
+            { $set: data },
             { new: true }
-        ).exec();
+        );
     }
-
 
     async updateBalance(driverId: string, amount: number) {
         return this._model.findByIdAndUpdate(

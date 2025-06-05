@@ -19,12 +19,10 @@ class PlayLogService {
         const device = await this._deviceRepository.findById(deviceId);
         if(!device || !device.driverId) throw new BadRequestError('Device not paired with driver');
         
-        // Create a partial PlayLog with correctly typed ObjectIds
         const playLogData: Partial<IPlayLog> = {
             deviceId: new Types.ObjectId(deviceId),
             driverId: new Types.ObjectId(device.driverId),
             adId: new Types.ObjectId(adId),
-            // duration: new Number(),
             startTime: new Date()
         };
         
@@ -32,23 +30,19 @@ class PlayLogService {
     }
 
     async getDriverEarnings(driverId: string, dateStr: string | null) {
-        // If no date provided, return driver's total balance
         if (!dateStr) {
             const driver = await authService.findDriverById(driverId)
             return driver.balance;
         }
         
         const calculationDate = new Date(dateStr);
-        if (isNaN(calculationDate.getTime())) {
-            throw new BadRequestError('Invalid date format');
-        }
-        
-        // Calculate daily earnings
+        if (isNaN(calculationDate.getTime())) throw new BadRequestError('Invalid date format')
         const earnings = await this.calculateDriverEarnings(driverId, calculationDate);
+        
         return earnings;
     }
 
-    async endPlaySession(logId: string){
+    async endPlaySession(logId: string) {
         const existingLog = await this._playLogRepository.markAsProcessed(logId);
         if(!existingLog) throw new BadRequestError('This play session was already processed');
 
@@ -56,26 +50,66 @@ class PlayLogService {
         const log = await this._playLogRepository.updatePlayLog(logId, {endTime, processed: true });
 
         if (log) {
-            const duration = (endTime.getTime() - log.startTime.getTime()) / 1000;
-            const updatedLog = await this._playLogRepository.updatePlayLog(logId, { duration 
-        });
-        
-        // Calculate and update earnings IMMEDIATELY
-        const ad = await this._adRepository.findById(log.adId.toString());
-        if (ad) {
-            const earnings = (duration / 30) * (ad.rpm / 1000);
-                await this._driverRepository.updateBalance(
-                    log.driverId.toString(), 
-                    Number(earnings.toFixed(2)) // Precision fix
-                );
-            }
+            const reportedDuration = (endTime.getTime() - log.startTime.getTime()) / 1000;
+            
+            // Get ad details for validation
+            const ad = await this._adRepository.findById(log.adId.toString());
+            if (!ad) throw new BadRequestError('Ad not found');
+
+            // ENHANCED: Validate and cap duration
+            const validatedDuration = this.validateAndCapDuration(reportedDuration, ad, logId);
+            
+            // Update with validated duration
+            const updatedLog = await this._playLogRepository.updatePlayLog(logId, { 
+                duration: validatedDuration 
+            });
+            
+            // Calculate earnings based on VALIDATED duration
+            const earnings = (validatedDuration / 30) * (ad.rpm / 1000);
+            await this._driverRepository.updateBalance(
+                log.driverId.toString(), 
+                Number(earnings.toFixed(2))
+            );
+            
             return updatedLog;
         }
 
         return null;
     }
 
-   async calculateDriverEarnings(driverId: string, date: Date) {
+    //NEW: Duration validation and capping logic
+    private validateAndCapDuration(reportedDuration: number, ad: any, logId: string): number {
+        const maxAllowedDuration = ad.duration * 1.2; // 20% buffer for loading / buffering
+        const minPlayTime = 3; // must play atleast 3 sec
+
+        //log suspicious activity for monitoring
+        if( reportedDuration > maxAllowedDuration ) {
+            console.warn(`[FRAUD ALERT] Duration exceeded for logId: ${logId}`, {
+                reported: reportedDuration,
+                adDuration: ad.duration,
+                maxAllowed: maxAllowedDuration,
+                adTitle: ad.title,
+                timestamp: new Date()
+            });
+        }
+
+        if (reportedDuration < minPlayTime) {
+            console.warn(`[FRAUD ALERT] Play duration too short for logId: ${logId}`, {
+                reported: reportedDuration,
+                minRequired: minPlayTime,
+                adTitle: ad.title,
+                timestamp: new Date()
+            });
+        }
+
+        // Cap at actual ad duration (no earnings for "over-play")
+        const validDuration = Math.min(reportedDuration, ad.duration);
+        
+        // Apply minimum play time requirement
+        return Math.max(validDuration, minPlayTime);
+    }
+   
+    async calculateDriverEarnings(driverId: string, date: Date) {
     // Now just returns historical data without updating balance
     const logs = await this._playLogRepository.getDailyLogsForDriver(driverId, date);
     

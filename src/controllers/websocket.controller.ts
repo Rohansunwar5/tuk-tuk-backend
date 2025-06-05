@@ -10,8 +10,6 @@ export async function handleDeviceConnection(ws: WebSocket, requestUrl: string) 
   let deviceId: string;
   let heartbeatInterval: NodeJS.Timeout;
 
-
-
   const cleanup = async () => {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     if (deviceId) {

@@ -21,11 +21,11 @@ class DeviceService {
         const device = await this._deviceRepository.create({ hardwareId, deviceId, model, initialPairingToken, status: 'unpaired' });
 
         // In device.service.ts - Token generation
-         console.log('Token generation secret:', config.DEVICE_JWT_SECRET);
+        console.log('Token generation secret:', config.DEVICE_JWT_SECRET);
         const wsToken = jwt.sign(
         { 
-            deviceId: device._id.toString(), // Ensure string conversion
-            iat: Math.floor(Date.now() / 1000) // Add issued at timestamp
+            deviceId: device._id.toString(), 
+            iat: Math.floor(Date.now() / 1000) 
         },
         config.DEVICE_JWT_SECRET!,
         { expiresIn: '24h' }
@@ -57,8 +57,6 @@ class DeviceService {
     }
 
     async getDeviceForRefresh(deviceId: string) {
-        console.log('inside getDeviceforRefresh');
-        
         return this._deviceRepository.getDeviceForRefresh(deviceId);
     } 
 

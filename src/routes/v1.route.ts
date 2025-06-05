@@ -7,6 +7,7 @@ import pairRouter from './pairing.route';
 import adRouter from './ad.routes';
 import playLogRouter from './playlog.route';
 import earningsRoute from './earnings.route';
+import paymentRouter from './payment.route';
 
 const v1Router = Router();
 
@@ -18,5 +19,6 @@ v1Router.use('/playlog', playLogRouter);
 v1Router.use('/earnings', earningsRoute);
 v1Router.use('/device', deviceRouter);
 v1Router.use('/pairings', pairRouter);
+v1Router.use('/payout', paymentRouter);
 
 export default v1Router;

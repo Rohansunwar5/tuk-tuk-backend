@@ -59,6 +59,9 @@ const driverSchema = new mongoose.Schema({
     location: {
         type: String,
     },
+    razorpayContactId: {
+        type: String,
+    },
     razorpayFundAccountId: {
         type: String,
     }
@@ -82,6 +85,7 @@ export interface IDriver extends mongoose.Schema {
     lastLogin?: Date;
     profileCompleted?: boolean;
     location?: string;
+    razorpayContactId?: string;
     razorpayFundAccountId?: string;
 }
 
