@@ -6,6 +6,7 @@ import { PlayLogRepository } from "../repository/playlog.repository";
 import { IPlayLog } from "../models/playlog.model";
 import { AdRepository } from "../repository/ad.repository";
 import authService from "./auth.service";
+import { NotFoundError } from "../errors/not-found.error";
 
 class PlayLogService {
     constructor(
@@ -120,6 +121,7 @@ class PlayLogService {
 
     async verifyPlaySession(logId: string) {
         const log = await this._playLogRepository.findById(logId);
+        if (!log) throw new NotFoundError('Play log not found');
         
         // Session is active if there's no endTime
         if (!log || log.endTime) return false;
@@ -129,7 +131,10 @@ class PlayLogService {
         if (device?.status !== 'paired') return false;
         
         // Optional: Add GPS/location verification here later
-        return true;
+        return {
+        isValid: !log.endTime,
+        deviceStatus: log.endTime ? 'ended' : 'active'
+        };
     }
 
     async calculateDailyEarningsForAllDrivers(date: Date) {
@@ -162,8 +167,8 @@ class PlayLogService {
         // }
 
         return {
-        isValid: fraudReasons.length === 0,
-        ...(fraudReasons.length > 0 && { fraudReasons })
+            isValid: fraudReasons.length === 0,
+            ...(fraudReasons.length > 0 && { fraudReasons })
         };
 
     }

@@ -5,24 +5,7 @@ import app from './app';
 import logger from './utils/logger';
 import connectDB from './db';
 import redisClient from './services/cache';
-
-import AWS from 'aws-sdk';
 import { initWebSocketRoutes } from './routes/websocket.route';
-
-
-
-AWS.config.getCredentials((err) => {
-  if (err) {
-      logger.error("❌ AWS Credentials Error:", err);
-      process.exit(1);
-  } else {
-      logger.info("✅ AWS Credentials Loaded", {
-          region: AWS.config,
-          accessKeyId: AWS.config.credentials?.accessKeyId?.substring(0, 4) + '...'
-      });
-  }
-});
-
 
 (async () => {
   logger.info('Connecting to Database...');

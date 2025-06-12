@@ -17,10 +17,13 @@ export const endPlaySession = async (req: Request, res: Response, next: NextFunc
 }
 
 export const verifyPlaySession = async (req: Request, res: Response, next: NextFunction) => {
-    const { logId } = req.params;
-    const isValid = await playlogService.verifyPlaySession(logId);
-
-    next(isValid);
+    try {
+        const { logId } = req.params;
+        const isValid = await playlogService.verifyPlaySession(logId);
+        res.json({ success: true, isValid }); // Proper response
+    } catch (error) {
+        next(error); // Proper error handling
+    }
 }
 
 export const verifyCompletedSession = async (req: Request, res: Response, next: NextFunction) => {

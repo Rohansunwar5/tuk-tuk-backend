@@ -2,11 +2,11 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-console.log('AWS Config from ENV:', {
-  region: process.env.AWS_REGION,
-  accessKey: process.env.AWS_ACCESS_KEY_ID?.substring(0, 4),
-  secretKey: process.env.AWS_SECRET_ACCESS_KEY?.substring(0, 4)
-});
+// console.log('AWS Config from ENV:', {
+//   region: process.env.AWS_REGION,
+//   accessKey: process.env.AWS_ACCESS_KEY_ID?.substring(0, 4),
+//   secretKey: process.env.AWS_SECRET_ACCESS_KEY?.substring(0, 4)
+// });
 
 const config = {
   MONGO_URI: process.env.MONGO_URI! as string,
@@ -15,6 +15,7 @@ const config = {
   REDIS_PORT: process.env.REDIS_PORT! as string,
   PORT: process.env.PORT! as string,
   JWT_SECRET: process.env.JWT_SECRET! as string,
+  ADMIN_JWT_SECRET: process.env.ADMIN_JWT_SECRET! as string,
   DEVICE_JWT_SECRET: process.env.DEVICE_JWT_SECRET! as string,
   ACCESS_TOKEN_EXPIRY: process.env.ACCESS_TOKEN_EXPIRY! as string,
   AWS_REGION: process.env.AWS_REGION! as string,
@@ -29,6 +30,7 @@ const config = {
 
   SERVER_NAME: `${process.env.SERVER_NAME}-${process.env.NODE_ENV}`! as string,
   JWT_CACHE_ENCRYPTION_KEY: process.env.JWT_CACHE_ENCRYPTION_KEY! as string,
+  ADMIN_JWT_CACHE_ENCRYPTION_KEY: process.env.ADMIN_JWT_CACHE_ENCRYPTION_KEY! as string,
   DEFAULT_COUNTRY_CODE: 'IN',
 };
 
